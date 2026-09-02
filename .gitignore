@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+.venv/
+
+# IDE
+.idea/
+
+# Generated data files
+*.json
+
+# api etc
+.env
+config.json
