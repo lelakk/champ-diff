@@ -11,10 +11,13 @@ BASE_DDRAGON_URL = "https://ddragon.leagueoflegends.com"
 
 
 def get_all_versions(timeout: int = 10) -> list[str] | None:
-    """
-    Fetches all available versions from DataDragon.
-    :param timeout: Timeout for the HTTP request in seconds.
-    :return: List of all version strings, or None if the request failed.
+    """Fetches all available versions from DataDragon.
+
+    Args:
+        timeout: Timeout for the HTTP request in seconds.
+
+    Returns:
+        List of all version strings, or None if the request failed.
     """
     url = f"{BASE_DDRAGON_URL}/api/versions.json"
     try:
@@ -29,10 +32,13 @@ def get_all_versions(timeout: int = 10) -> list[str] | None:
 
 
 def get_latest_patch(timeout: int = 10) -> str | None:
-    """
-    Fetches the latest version patch from the available versions.
-    :param timeout: Timeout for the HTTP request in seconds.
-    :return: The latest patch version string, or None if unavailable.
+    """Fetches the latest version patch from the available versions.
+
+    Args:
+        timeout: Timeout for the HTTP request in seconds.
+
+    Returns:
+        The latest patch version string, or None if unavailable.
     """
     versions = get_all_versions(timeout)
     if not versions:
@@ -42,12 +48,15 @@ def get_latest_patch(timeout: int = 10) -> str | None:
 
 
 def get_champion_data(patch_version: str, language: str = "en_US", timeout: int = 10) -> dict[str, Any] | None:
-    """
-    Fetches patch data from DataDragon for a specific patch version.
-    :param patch_version: Version of the patch.
-    :param language: Language code for the champion data.
-    :param timeout: Timeout for the HTTP request in seconds.
-    :return: Dictionary containing the champion data, or None if failed.
+    """Fetches patch data from DataDragon for a specific patch version.
+
+    Args:
+        patch_version: Version of the patch.
+        language: Language code for the champion data.
+        timeout: Timeout for the HTTP request in seconds.
+
+    Returns:
+        Dictionary containing the champion data, or None if failed.
     """
     url = f"{BASE_DDRAGON_URL}/cdn/{patch_version}/data/{language}/champion.json"
     try:
@@ -62,11 +71,14 @@ def get_champion_data(patch_version: str, language: str = "en_US", timeout: int 
 
 
 def save_json_file(data: Any, filepath: str | Path) -> bool:
-    """
-    Saves data to a JSON file.
-    :param data: The data to be saved.
-    :param filepath: Target path where the file will be saved.
-    :return: True if saved successfully, False otherwise.
+    """Saves data to a JSON file.
+
+    Args:
+        data: The data to be saved.
+        filepath: Target path where the file will be saved.
+
+    Returns:
+        True if saved successfully, False otherwise.
     """
     try:
         with open(filepath, "w", encoding="utf-8") as file:
