@@ -31,21 +31,26 @@ def get_all_versions(timeout: int = 10) -> list[str] | None:
     return None
 
 
-def get_latest_patch(timeout: int = 10) -> str | None:
-    """Fetches the latest version patch from the available versions.
+def get_latest_and_previous_patch(timeout: int = 10) -> tuple[str, str] | None:
+    """Fetches the latest and previous version patch from the available versions.
 
     Args:
         timeout: Timeout for the HTTP request in seconds.
 
     Returns:
-        The latest patch version string, or None if unavailable.
+        A tuple containing the latest and previous patch version strings, or None if unavailable.
     """
     versions = get_all_versions(timeout)
     if not versions:
-        logging.error("Versions list is empty or unavailable.")
+        logging.error("No versions returned from DataDragon")
         return None
-    return versions[0]
-
+    if not isinstance(versions, list) or len(versions)<2:
+        logging.error("Invalid versions response, expected at least 2 versions")
+        return None
+    if not all(isinstance(v, str) for v in versions):
+        logging.error("Invalid version format, expected strings")
+        return None
+    return versions[0], versions[1]
 
 def get_champion_data(patch_version: str, language: str = "en_US", timeout: int = 10) -> dict[str, Any] | None:
     """Fetches patch data from DataDragon for a specific patch version.
@@ -62,7 +67,8 @@ def get_champion_data(patch_version: str, language: str = "en_US", timeout: int 
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
-        return response.json()
+        patch_data = response.json()
+        return patch_data.get("data")
     except requests.exceptions.RequestException as error:
         logging.error(f"Failed to fetch champion data: {error}")
     except ValueError as error:
@@ -89,25 +95,63 @@ def save_json_file(data: Any, filepath: str | Path) -> bool:
         return False
 
 
+def get_champion_diff(latest_patch_data: dict, previous_patch_data: dict) -> tuple[dict, list]:
+    """Compares champion stats between two patch datasets.
+
+    Args:
+        latest_patch_data: Champion data from the newer patch.
+        previous_patch_data: Champion data from the older patch.
+
+    Returns:
+        A tuple where:
+            - First element is a dictionary of changed champions and their stat diffs.
+            - Second element is a list of champions that were not present in the previous patch.
+    """
+
+    champion_changes = {}
+    new_champions = []
+
+    for champion, new_data in latest_patch_data.items():
+        previous_data = previous_patch_data.get(champion)
+        current_champ_diff = {}
+        if previous_data is None:
+            logging.warning(f"Champion {champion} added...")
+            new_champions.append(champion)
+        else:
+            previous_stats = previous_data.get("stats", {})
+            new_stats = new_data.get("stats", {})
+
+            if previous_stats == new_stats:
+                continue
+
+            for stat, new_value in new_stats.items():
+                previous_value = previous_stats.get(stat)
+                if previous_value != new_value:
+                    current_champ_diff[stat] = {"new": new_value, "old": previous_value}
+            champion_changes[champion] = current_champ_diff
+
+
+    return champion_changes, new_champions
+
 def main() -> None:
-    print("League Data Dragon Fetcher\n")
 
-    latest_patch = get_latest_patch()
-    if not latest_patch:
+    patches = get_latest_and_previous_patch()
+    if not patches:
         sys.exit(1)
-    print(f"Latest patch version: {latest_patch}")
+    latest_patch, previous_patch = patches
 
-    print(f"Downloading champion data for patch {latest_patch}...")
-    champions_raw = get_champion_data(latest_patch)
-    if not champions_raw:
+    logging.info(f"Latest patch version: {latest_patch}")
+    logging.info(f"Previous patch version: {previous_patch}")
+
+    logging.info(f"Downloading champion data for patch {latest_patch} and patch {previous_patch} ...")
+
+    latest_champions = get_champion_data(latest_patch)
+    previous_champions = get_champion_data(previous_patch)
+    if not latest_champions or not previous_champions:
+        logging.error("Failed to fetch champion data for patch versions")
         sys.exit(1)
 
-    target_file = Path("champions.json")
-    if save_json_file(champions_raw, target_file):
-        print(f"Champion data saved to '{target_file}'")
-    else:
-        sys.exit(1)
-
+    get_champion_diff(latest_champions, previous_champions)
 
 if __name__ == "__main__":
     main()
