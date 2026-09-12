@@ -37,7 +37,10 @@ def get_champion_diff(
             for stat, new_value in new_stats.items():
                 previous_value = previous_stats.get(stat)
                 if previous_value != new_value:
-                    current_champ_diff[stat] = {"new": new_value, "old": previous_value}
+                    current_champ_diff[stat] = {
+                        "new": new_value,
+                        "old": previous_value
+                    }
             champion_changes[champion] = current_champ_diff
 
     return champion_changes, new_champions

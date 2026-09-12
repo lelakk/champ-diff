@@ -21,7 +21,7 @@ def get_latest_and_previous_patch(timeout: int = 10) -> tuple[str, str] | None:
     if not isinstance(versions, list) or len(versions) < 2:
         logger.error("Invalid versions response, expected at least 2 versions")
         return None
-    if not all(isinstance(v, str) for v in versions):
+    if not all(isinstance(ver, str) for ver in versions):
         logger.error("Invalid version format, expected strings")
         return None
     return versions[0], versions[1]
