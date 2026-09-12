@@ -2,6 +2,8 @@ import logging
 
 from services.ddragon_client import get_all_versions
 
+logger = logging.getLogger(__name__)
+
 
 def get_latest_and_previous_patch(timeout: int = 10) -> tuple[str, str] | None:
     """Fetches the latest and previous version patch from the available versions.
@@ -14,12 +16,12 @@ def get_latest_and_previous_patch(timeout: int = 10) -> tuple[str, str] | None:
     """
     versions = get_all_versions(timeout)
     if not versions:
-        logging.error("No versions returned from DataDragon")
+        logger.error("No versions returned from DataDragon")
         return None
-    if not isinstance(versions, list) or len(versions)<2:
-        logging.error("Invalid versions response, expected at least 2 versions")
+    if not isinstance(versions, list) or len(versions) < 2:
+        logger.error("Invalid versions response, expected at least 2 versions")
         return None
     if not all(isinstance(v, str) for v in versions):
-        logging.error("Invalid version format, expected strings")
+        logger.error("Invalid version format, expected strings")
         return None
     return versions[0], versions[1]

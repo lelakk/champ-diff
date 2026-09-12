@@ -4,6 +4,8 @@ from services.ddragon_client import get_champion_data
 from services.diff_service import get_champion_diff
 from services.patch_service import get_latest_and_previous_patch
 
+logger = logging.getLogger(__name__)
+
 
 def compare_last_patch() -> tuple[dict, list]:
     """Compares the latest and previous patch versions and returns the differences.
@@ -15,8 +17,8 @@ def compare_last_patch() -> tuple[dict, list]:
         raise RuntimeError("Failed to fetch patch versions")
 
     latest_patch, previous_patch = patches
-    logging.info(f"Latest patch: {latest_patch}")
-    logging.info(f"Previous patch: {previous_patch}")
+    logger.info(f"Latest patch: {latest_patch}")
+    logger.info(f"Previous patch: {previous_patch}")
 
     latest_champions = get_champion_data(latest_patch)
     previous_champions = get_champion_data(previous_patch)

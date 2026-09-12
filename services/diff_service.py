@@ -1,7 +1,11 @@
 import logging
 
+logger = logging.getLogger(__name__)
 
-def get_champion_diff(latest_patch_data: dict, previous_patch_data: dict) -> tuple[dict, list]:
+
+def get_champion_diff(
+    latest_patch_data: dict, previous_patch_data: dict
+) -> tuple[dict, list]:
     """Compares champion stats between two patch datasets.
 
     Args:
@@ -21,7 +25,7 @@ def get_champion_diff(latest_patch_data: dict, previous_patch_data: dict) -> tup
         previous_data = previous_patch_data.get(champion)
         current_champ_diff = {}
         if previous_data is None:
-            logging.warning(f"Champion {champion} added...")
+            logger.warning(f"Champion {champion} added...")
             new_champions.append(champion)
         else:
             previous_stats = previous_data.get("stats", {})
