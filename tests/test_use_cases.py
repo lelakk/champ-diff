@@ -1,0 +1,83 @@
+import pytest
+from unittest.mock import call
+
+from app.use_cases import compare_last_patch
+
+GET_PATCHES_FUNCTION = "app.use_cases.get_latest_and_previous_patch"
+GET_CHAMPION_DATA_FUNCTION = "app.use_cases.get_champion_data"
+GET_CHAMPION_DIFF_FUNCTION = "app.use_cases.get_champion_diff"
+
+
+def test_compare_last_patch_success(mocker):
+    """If all dependencies return valid data, should return computed diff output."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
+
+    mock_get_champion_data = mocker.patch(
+        GET_CHAMPION_DATA_FUNCTION,
+        side_effect=[{"Garen": {"stats": {"hp": 1000}}}, {"Garen": {"stats": {"hp": 900}}, "Yasuo": {"stats": {"hp": 670}}}]
+    )
+
+    mock_get_champion_diff = mocker.patch(
+        GET_CHAMPION_DIFF_FUNCTION,
+        return_value=({"Garen": {"hp": {"new": 1000, "old": 900}}}, ["Yasuo"])
+    )
+
+    result = compare_last_patch()
+
+    assert result == ({"Garen": {"hp": {"new": 1000, "old": 900}}}, ["Yasuo"])
+    assert mock_get_champion_data.call_count == 2
+    assert mock_get_champion_diff.call_count == 1
+
+
+def test_compare_last_patch_failed_fetching_versions(mocker):
+    """If patch versions fetch fails, should raise RuntimeError."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=None)
+    with pytest.raises(RuntimeError, match="Failed to fetch patch versions"):
+        compare_last_patch()
+
+
+def test_compare_last_patch_empty_champion_dictionaries(mocker):
+    """If champion data is empty for both patches, should raise RuntimeError."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
+    mock_get_champion_data = mocker.patch(GET_CHAMPION_DATA_FUNCTION, side_effect=[{}, {}])
+    with pytest.raises(RuntimeError, match="Failed to fetch champion data"):
+        compare_last_patch()
+    assert mock_get_champion_data.call_count == 2
+
+
+def test_compare_last_patch_failed_fetching_champion_data(mocker):
+    """If one champion data fetch fails, should raise RuntimeError."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
+
+    mock_get_champion_data = mocker.patch(GET_CHAMPION_DATA_FUNCTION, side_effect=[{"Garen": {"id": "Garen"}}, None])
+
+    with pytest.raises(RuntimeError, match="Failed to fetch champion data"):
+        compare_last_patch()
+    assert mock_get_champion_data.call_count == 2
+
+
+def test_compare_last_patch_calls_get_champion_data_in_patch_order(mocker):
+    """Should fetch champion data first for latest patch, then previous patch."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
+    mock_get_champion_data = mocker.patch(
+        GET_CHAMPION_DATA_FUNCTION,
+        side_effect=[{"Garen": {"stats": {"hp": 1000}}}, {"Garen": {"stats": {"hp": 900}}}],
+    )
+    mocker.patch(GET_CHAMPION_DIFF_FUNCTION, return_value=({}, []))
+
+    compare_last_patch()
+
+    assert mock_get_champion_data.call_args_list == [call("10.0.0"), call("9.9.9")]
+
+
+def test_compare_last_patch_passes_fetched_data_to_diff(mocker):
+    """Should pass fetched latest and previous champion data to diff service."""
+    mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
+    latest_data = {"Garen": {"stats": {"hp": 1000}}}
+    previous_data = {"Garen": {"stats": {"hp": 900}}}
+    mocker.patch(GET_CHAMPION_DATA_FUNCTION, side_effect=[latest_data, previous_data])
+    mock_get_champion_diff = mocker.patch(GET_CHAMPION_DIFF_FUNCTION, return_value=({}, []))
+
+    compare_last_patch()
+
+    mock_get_champion_diff.assert_called_once_with(latest_data, previous_data)
