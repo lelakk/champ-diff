@@ -8,6 +8,16 @@ BASE_DDRAGON_URL = "https://ddragon.leagueoflegends.com"
 
 
 def _fetch_json(url: str, timeout: int = 10) -> dict[str, Any] | None:
+    """Fetches and parses JSON data from a given URL.
+
+        Args:
+            url: The URL to fetch the JSON data from.
+            timeout: Timeout for the HTTP request in seconds.
+
+        Returns:
+            Parsed JSON data or None if the request fails
+            or the response contains invalid JSON.
+        """
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
