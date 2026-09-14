@@ -1,7 +1,9 @@
 import logging
-from typing import Any
-
 import requests
+
+from typing import Any
+from pydantic import ValidationError
+from app.models import ChampionPayload, ChampionEntry
 
 logger = logging.getLogger(__name__)
 BASE_DDRAGON_URL = "https://ddragon.leagueoflegends.com"
@@ -33,7 +35,7 @@ def _fetch_json(url: str, timeout: int = 10) -> dict[str, Any] | None:
 
 def get_champion_data(
     patch_version: str, language: str = "en_US", timeout: int = 10
-) -> dict[str, Any] | None:
+) -> dict[str, ChampionEntry] | None:
     """Fetches patch data from DataDragon for a specific patch version.
 
     Args:
@@ -48,9 +50,19 @@ def get_champion_data(
     logger.info("Downloading champion data for patch %s ...", patch_version)
 
     data = _fetch_json(url, timeout)
-    if isinstance(data, dict):
-        return data.get("data")
-    return None
+    if not isinstance(data, dict):
+        return None
+
+    try:
+        champ_payload = ChampionPayload.model_validate(data)
+    except ValidationError as error_message:
+        logger.error(f"Invalid champion payload format for patch {patch_version}: {error_message}")
+        return None
+
+    if not champ_payload.data:
+        return None
+
+    return champ_payload.data
 
 
 def get_all_versions(timeout: int = 10) -> list[str] | None:

@@ -1,46 +1,55 @@
 import logging
 
+from app.models import ChampionDiffResult, ChampionDiffStat, ChampionEntry
+
 logger = logging.getLogger(__name__)
 
 
 def get_champion_diff(
-    latest_patch_data: dict, previous_patch_data: dict
-) -> tuple[dict, list]:
+    latest_patch_data: dict[str, ChampionEntry],
+    previous_patch_data: dict[str, ChampionEntry]
+) -> ChampionDiffResult:
     """Compares champion stats between two patch datasets.
 
     Args:
-        latest_patch_data: Champion data from the newer patch.
-        previous_patch_data: Champion data from the older patch.
+        latest_patch_data: Dictionary mapping champion names to their newer patch data models.
+        previous_patch_data: Dictionary mapping champion names to their older patch data models.
 
     Returns:
-        A tuple where:
-            - First element is a dictionary of changed champions and their stat diffs.
-            - Second element is a list of champions that were not present in the previous patch.
+        A ChampionDiffResult object containing the calculated stat differences and newly added champions.
     """
 
     champion_changes = {}
     new_champions = []
 
-    for champion, new_data in latest_patch_data.items():
-        previous_data = previous_patch_data.get(champion)
+    for champion_name, new_champ_data in latest_patch_data.items():
+        previous_champ_data = previous_patch_data.get(champion_name)
+
+        if previous_champ_data is None:
+            logger.warning(f"Champion {champion_name} added...")
+            new_champions.append(champion_name)
+            continue
+
+        previous_stats = previous_champ_data.stats
+        new_stats = new_champ_data.stats
+
+        if previous_stats == new_stats:
+            continue
+
         current_champ_diff = {}
-        if previous_data is None:
-            logger.warning(f"Champion {champion} added...")
-            new_champions.append(champion)
-        else:
-            previous_stats = previous_data.get("stats", {})
-            new_stats = new_data.get("stats", {})
+        for stat, new_value in new_stats.items():
+            previous_value = previous_stats.get(stat)
 
-            if previous_stats == new_stats:
-                continue
+            if previous_value != new_value:
+                current_champ_diff[stat] = ChampionDiffStat(
+                    new = new_value,
+                    old = previous_value
+                )
 
-            for stat, new_value in new_stats.items():
-                previous_value = previous_stats.get(stat)
-                if previous_value != new_value:
-                    current_champ_diff[stat] = {
-                        "new": new_value,
-                        "old": previous_value
-                    }
-            champion_changes[champion] = current_champ_diff
+        if current_champ_diff:
+            champion_changes[champion_name] = current_champ_diff
 
-    return champion_changes, new_champions
+    return ChampionDiffResult(
+        champion_changes=champion_changes,
+        new_champions=new_champions
+    )

@@ -3,14 +3,16 @@ import logging
 from services.ddragon_client import get_champion_data
 from services.diff_service import get_champion_diff
 from services.patch_service import get_latest_and_previous_patch
+from app.models import ChampionDiffResult
 
 logger = logging.getLogger(__name__)
 
 
-def compare_last_patch() -> tuple[dict, list]:
+def compare_last_patch() -> ChampionDiffResult:
     """Compares the latest and previous patch versions and returns the differences.
+
     Returns:
-        A tuple containing the champion changes and new champions.
+        A ChampionDiffResult object containing the champion changes and new champions.
     """
     patches = get_latest_and_previous_patch()
     if not patches:

@@ -1,12 +1,12 @@
 import responses
 
 from services.ddragon_client import get_champion_data, get_all_versions
-
+from app.models import ChampionEntry
 
 #get_champion_data
 @responses.activate
 def test_get_champion_data_success():
-    """If API returns 200 & valid JSON, should return champion data dict"""
+    """If API returns 200 & valid JSON, should return champion data dict of models"""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -15,7 +15,7 @@ def test_get_champion_data_success():
         status=200
     )
     result = get_champion_data("10.0.0")
-    assert result == {"Garen": {"id": "Garen"}}
+    assert result == {"Garen": ChampionEntry(id="Garen")}
 
 
 @responses.activate

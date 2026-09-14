@@ -16,9 +16,8 @@ def main() -> None:
         logger.error(f"Error occurred while comparing last patch: {error_message}")
         raise SystemExit(1)
 
-    champion_changes, new_champions = result
-    logger.info(f"Champion changes: {champion_changes}")
-    logger.info(f"New champion: {new_champions}" if new_champions else "No new champions")
+    logger.info(f"Champion changes: {result.champion_changes}")
+    logger.info(f"New champion: {result.new_champions}" if result.new_champions else "No new champions")
 
 
 if __name__ == "__main__":
