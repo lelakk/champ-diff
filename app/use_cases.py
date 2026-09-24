@@ -1,3 +1,5 @@
+"""Use cases for the application."""
+
 import logging
 
 from services.ddragon_client import get_champion_data
@@ -19,8 +21,8 @@ def compare_last_patch() -> ChampionDiffResult:
         raise RuntimeError("Failed to fetch patch versions")
 
     latest_patch, previous_patch = patches
-    logger.info(f"Latest patch: {latest_patch}")
-    logger.info(f"Previous patch: {previous_patch}")
+    logger.info("Latest patch: %s", latest_patch)
+    logger.info("Previous patch: %s", previous_patch)
 
     latest_champions = get_champion_data(latest_patch)
     previous_champions = get_champion_data(previous_patch)
