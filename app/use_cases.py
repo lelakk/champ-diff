@@ -1,8 +1,7 @@
 import logging
 
-from services.ddragon_client import get_champion_data
+from services.ddragon_client import get_champion_data, get_latest_and_previous_patch
 from services.diff_service import get_champion_diff
-from services.patch_service import get_latest_and_previous_patch
 from app.models import ChampionDiffResult
 
 logger = logging.getLogger(__name__)
