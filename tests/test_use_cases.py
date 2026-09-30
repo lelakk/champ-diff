@@ -1,5 +1,7 @@
-import pytest
+"""Unit tests for end-to-end patch comparison use cases."""
+
 from unittest.mock import call
+import pytest
 
 from app.use_cases import compare_last_patch
 from app.models import ChampionDiffResult, ChampionDiffStat
@@ -58,7 +60,10 @@ def test_compare_last_patch_failed_fetching_champion_data(mocker):
     """If one champion data fetch fails, should raise RuntimeError."""
     mocker.patch(GET_PATCHES_FUNCTION, return_value=("10.0.0", "9.9.9"))
 
-    mock_get_champion_data = mocker.patch(GET_CHAMPION_DATA_FUNCTION, side_effect=[{"Garen": ...}, None])
+    mock_get_champion_data = mocker.patch(
+        GET_CHAMPION_DATA_FUNCTION,
+        side_effect=[{"Garen": ...}, None]
+    )
 
     with pytest.raises(RuntimeError, match="Failed to fetch champion data"):
         compare_last_patch()
@@ -87,9 +92,15 @@ def test_compare_last_patch_passes_fetched_data_to_diff(mocker):
     latest_data = {"Garen": ...}
     previous_data = {"Garen": ...}
 
-    mocker.patch(GET_CHAMPION_DATA_FUNCTION, side_effect=[latest_data, previous_data])
+    mocker.patch(
+        GET_CHAMPION_DATA_FUNCTION,
+        side_effect=[latest_data, previous_data]
+    )
 
-    mock_get_champion_diff = mocker.patch(GET_CHAMPION_DIFF_FUNCTION, return_value=ChampionDiffResult())
+    mock_get_champion_diff = mocker.patch(
+        GET_CHAMPION_DIFF_FUNCTION,
+        return_value=ChampionDiffResult()
+    )
 
     compare_last_patch()
 

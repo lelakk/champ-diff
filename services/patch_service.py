@@ -1,3 +1,5 @@
+"""Select game patch versions for comparison."""
+
 import logging
 
 from services.ddragon_client import get_all_versions

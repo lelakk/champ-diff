@@ -1,3 +1,5 @@
+"""Unit tests for the DataDragon API client."""
+
 import responses
 
 from services.ddragon_client import get_champion_data, get_all_versions
@@ -6,7 +8,7 @@ from app.models import ChampionEntry
 #get_champion_data
 @responses.activate
 def test_get_champion_data_success():
-    """If API returns 200 & valid JSON, should return champion data dict of models"""
+    """If API returns 200 & valid JSON, should return champion data dict of models."""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -20,7 +22,7 @@ def test_get_champion_data_success():
 
 @responses.activate
 def test_get_champion_data_failure():
-    """If API returns 404, should return None"""
+    """If API returns 404, should return None."""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -33,7 +35,7 @@ def test_get_champion_data_failure():
 
 @responses.activate
 def test_get_champion_data_invalid_json():
-    """If API returns invalid JSON, should return None"""
+    """If API returns invalid JSON, should return None."""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -47,7 +49,7 @@ def test_get_champion_data_invalid_json():
 
 @responses.activate
 def test_get_champion_data_timeout():
-    """If connection raises an error, should return None"""
+    """If connection raises an error, should return None."""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -60,7 +62,7 @@ def test_get_champion_data_timeout():
 
 @responses.activate
 def test_get_champion_data_empty_data():
-    """If API returns empty JSON, should return None"""
+    """If API returns empty JSON, should return None."""
     url = "https://ddragon.leagueoflegends.com/cdn/10.0.0/data/en_US/champion.json"
     responses.add(
         responses.GET,
@@ -75,7 +77,7 @@ def test_get_champion_data_empty_data():
 #get_all_versions
 @responses.activate
 def test_get_all_versions_success():
-    """If versions API returns 200, should return versions list"""
+    """If versions API returns 200, should return versions list."""
     url = "https://ddragon.leagueoflegends.com/api/versions.json"
     responses.add(
         responses.GET,
@@ -89,7 +91,7 @@ def test_get_all_versions_success():
 
 @responses.activate
 def test_get_all_versions_failure():
-    """If versions API returns 500, should return None"""
+    """If versions API returns 500, should return None."""
     url = "https://ddragon.leagueoflegends.com/api/versions.json"
     responses.add(
         responses.GET,

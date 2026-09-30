@@ -1,3 +1,5 @@
+"""Unit tests for patch version selection logic."""
+
 from services.patch_service import get_latest_and_previous_patch
 
 GET_VERSIONS_FUNCTION = "services.patch_service.get_all_versions"

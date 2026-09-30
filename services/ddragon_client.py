@@ -1,8 +1,10 @@
-import logging
-import requests
+"""Fetch champion data and patch versions from Riot DataDragon API."""
 
+import logging
 from typing import Any
+import requests
 from pydantic import ValidationError
+
 from app.models import ChampionPayload, ChampionEntry
 
 logger = logging.getLogger(__name__)
@@ -12,24 +14,24 @@ BASE_DDRAGON_URL = "https://ddragon.leagueoflegends.com"
 def _fetch_json(url: str, timeout: int = 10) -> dict[str, Any] | None:
     """Fetches and parses JSON data from a given URL.
 
-        Args:
-            url: The URL to fetch the JSON data from.
-            timeout: Timeout for the HTTP request in seconds.
+    Args:
+        url: The URL to fetch the JSON data from.
+        timeout: Timeout for the HTTP request in seconds.
 
-        Returns:
-            Parsed JSON data or None if the request fails
-            or the response contains invalid JSON.
-        """
+    Returns:
+        Parsed JSON data or None if the request fails.
+        or the response contains invalid JSON.
+    """
     try:
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
     except requests.exceptions.RequestException as error_message:
-        logger.error(f"Request failed for {url}: {error_message}")
+        logger.error("Request failed for %s: %s", url, error_message)
         return None
     try:
         return response.json()
     except ValueError as error_message:
-        logger.error(f"Failed to parse JSON from {url}: {error_message}")
+        logger.error("Failed to parse JSON from %s: %s", url, error_message)
         return None
 
 
@@ -56,7 +58,10 @@ def get_champion_data(
     try:
         champ_payload = ChampionPayload.model_validate(data)
     except ValidationError as error_message:
-        logger.error(f"Invalid champion payload format for patch {patch_version}: {error_message}")
+        logger.error(
+            "Invalid champion payload format for patch %s: %s",
+            patch_version, error_message,
+        )
         return None
 
     if not champ_payload.data:
