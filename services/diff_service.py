@@ -1,3 +1,5 @@
+"""Calculate stat changes and check newly added champions across patches."""
+
 import logging
 
 from app.models import ChampionDiffResult, ChampionDiffStat, ChampionEntry
@@ -16,7 +18,8 @@ def get_champion_diff(
         previous_patch_data: Dictionary mapping champion names to their older patch data models.
 
     Returns:
-        A ChampionDiffResult object containing the calculated stat differences and newly added champions.
+        A ChampionDiffResult object containing the calculated
+        stat differences and newly added champions.
     """
 
     champion_changes = {}
@@ -26,7 +29,7 @@ def get_champion_diff(
         previous_champ_data = previous_patch_data.get(champion_name)
 
         if previous_champ_data is None:
-            logger.warning(f"Champion {champion_name} added...")
+            logger.warning("Champion %s added...", champion_name)
             new_champions.append(champion_name)
             continue
 

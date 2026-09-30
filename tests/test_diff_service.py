@@ -1,9 +1,11 @@
+"""Unit tests for champion stat comparison and difference calculation"""
+
 from app.models import ChampionEntry, ChampionDiffStat
 from services.diff_service import get_champion_diff
 
 
 def test_get_champion_diff_no_changes():
-    """If stats are the same, the function should return empty dict and empty list"""
+    """If stats are the same, the function should return empty dict and empty list."""
     patch = {"Garen": ChampionEntry(stats={"hp": 1000})}
     result = get_champion_diff(latest_patch_data=patch, previous_patch_data=patch)
 
