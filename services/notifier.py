@@ -19,6 +19,12 @@ MAX_EMBEDS_PER_MESSAGE = 10
 MAX_TOTAL_EMBED_CHARS = 6000
 DEFAULT_RETRY_AFTER_SECONDS = 5.0
 MAX_SERVER_ERROR_RETRIES = 3
+HEXTECH_GOLD_COLOR = 0xC8AA6E
+ANSI_GREEN = "\x1b[32m"
+ANSI_RED = "\x1b[31m"
+ANSI_RESET = "\x1b[0m"
+CODE_BLOCK_OVERHEAD = len("```ansi\n\n```")
+EMBED_DESCRIPTION = "Changes:"
 
 
 def _format_number(value: float | int) -> str:
@@ -36,25 +42,58 @@ def _format_number(value: float | int) -> str:
     return str(rounded)
 
 
+def _stat_delta(stat: ChampionDiffStat) -> float:
+    """Calculates the rounded numeric difference for a changed statistic.
+
+    Args:
+        stat: Object holding the old and new statistic values.
+
+    Returns:
+        Rounded numeric delta, or 0.0 if values are non-numeric.
+    """
+    if isinstance(stat.old, (int, float)) and isinstance(stat.new, (int, float)):
+        return round(stat.new - stat.old, 4)
+    return 0.0
+
+
+def _champion_sort_priority(stat_changes: dict[str, ChampionDiffStat]) -> int:
+    """Determines sort priority for a champion so buffs appear before nerfs.
+
+    Args:
+        stat_changes: Mapping of changed stat names to their diff objects.
+
+    Returns:
+        0 for pure buffs, 1 for mixed changes, 2 for pure nerfs.
+    """
+    deltas = [_stat_delta(stat) for stat in stat_changes.values()]
+    has_buff = any(delta > 0 for delta in deltas)
+    has_nerf = any(delta < 0 for delta in deltas)
+    if has_buff and not has_nerf:
+        return 0
+    if has_buff and has_nerf:
+        return 1
+    return 2
+
+
 def _format_stat_line(stat_name: str, stat: ChampionDiffStat) -> str:
-    """Formats a single changed champion statistic line for an embed field.
+    """Formats a single changed champion statistic line with ANSI color after the colon.
 
     Args:
         stat_name: Name of the statistic (e.g., 'hp', 'armor').
         stat: Object holding the old and new statistic values.
 
     Returns:
-        Formatted string showing old value, new value, direction arrow, and delta.
+        Formatted string with white stat name and green/red value change.
     """
     if isinstance(stat.old, (int, float)) and isinstance(stat.new, (int, float)):
-        delta = round(stat.new - stat.old, 4)
+        delta = _stat_delta(stat)
         old_str = _format_number(stat.old)
         new_str = _format_number(stat.new)
         delta_str = _format_number(delta)
         if delta > 0:
-            return f"{stat_name}: {old_str} → {new_str} (▲ +{delta_str})"
+            return f"{stat_name}: {ANSI_GREEN}{old_str} → {new_str} (▲ +{delta_str}){ANSI_RESET}"
         if delta < 0:
-            return f"{stat_name}: {old_str} → {new_str} (▼ {delta_str})"
+            return f"{stat_name}: {ANSI_RED}{old_str} → {new_str} (▼ {delta_str}){ANSI_RESET}"
     return f"{stat_name}: {stat.old} → {stat.new}"
 
 
@@ -90,7 +129,10 @@ def _split_lines_to_chunks(lines: list[str], max_length: int) -> list[str]:
 
 
 def build_embeds(
-    diff: ChampionDiffResult, latest: str, previous: str
+    diff: ChampionDiffResult,
+    latest: str,
+    previous: str,
+    champion_names: dict[str, str] | None = None,
 ) -> list[discord.Embed]:
     """Builds Discord embeds representing champion stat changes and new champions.
 
@@ -98,24 +140,44 @@ def build_embeds(
         diff: Calculated champion stat changes and new champions.
         latest: Latest patch version string.
         previous: Previous patch version string.
+        champion_names: Optional mapping from internal champion IDs to display names.
 
     Returns:
         A list of Discord embeds respecting Discord size and count limits.
     """
     fields: list[tuple[str, str]] = []
+    max_chunk_len = MAX_FIELD_VALUE_LENGTH - CODE_BLOCK_OVERHEAD
 
-    for champion_name, stat_changes in diff.champion_changes.items():
+    sorted_champions = sorted(
+        diff.champion_changes.items(),
+        key=lambda item: _champion_sort_priority(item[1]),
+    )
+
+    for champion_id, stat_changes in sorted_champions:
         if not stat_changes:
             continue
+        display_name = (
+            champion_names.get(champion_id, champion_id)
+            if champion_names
+            else champion_id
+        )
+        sorted_stats = sorted(
+            stat_changes.items(),
+            key=lambda item: 0 if _stat_delta(item[1]) > 0 else 1,
+        )
         lines = [
             _format_stat_line(stat_name, stat_diff)
-            for stat_name, stat_diff in stat_changes.items()
+            for stat_name, stat_diff in sorted_stats
         ]
-        for chunk in _split_lines_to_chunks(lines, MAX_FIELD_VALUE_LENGTH):
-            fields.append((champion_name, chunk))
+        for chunk in _split_lines_to_chunks(lines, max_chunk_len):
+            fields.append((display_name, f"```ansi\n{chunk}\n```"))
 
     if diff.new_champions:
-        new_champions_text = ", ".join(diff.new_champions)
+        new_names = [
+            champion_names.get(champ_id, champ_id) if champion_names else champ_id
+            for champ_id in diff.new_champions
+        ]
+        new_champions_text = ", ".join(new_names)
         for chunk in _split_lines_to_chunks(
             [new_champions_text], MAX_FIELD_VALUE_LENGTH
         ):
@@ -124,7 +186,8 @@ def build_embeds(
     if not fields:
         return []
 
-    footer_text = f"Patch {previous} → {latest}"
+    title_text = f"Patch {previous} → {latest}"
+    embed_overhead = len(title_text) + len(EMBED_DESCRIPTION)
     embeds: list[discord.Embed] = []
     total_chars = 0
 
@@ -137,12 +200,15 @@ def build_embeds(
         if needs_new_embed:
             if len(embeds) >= MAX_EMBEDS_PER_MESSAGE:
                 break
-            if total_chars + len(footer_text) + field_chars > MAX_TOTAL_EMBED_CHARS:
+            if total_chars + embed_overhead + field_chars > MAX_TOTAL_EMBED_CHARS:
                 break
-            embed = discord.Embed()
-            embed.set_footer(text=footer_text)
+            embed = discord.Embed(
+                title=title_text,
+                description=EMBED_DESCRIPTION,
+                color=HEXTECH_GOLD_COLOR,
+            )
             embeds.append(embed)
-            total_chars += len(footer_text)
+            total_chars += embed_overhead
         elif total_chars + field_chars > MAX_TOTAL_EMBED_CHARS:
             break
 
