@@ -28,14 +28,16 @@ def _make_forbidden(mocker) -> discord.Forbidden:
 
 
 def test_build_embeds_line_format_and_rounding():
-    """Should format stat changes with arrows, round float deltas, and include new champions."""
+    """Should format stat changes with ANSI colors after colon, sort buffs before nerfs, and set description."""
     diff = ChampionDiffResult(
         champion_changes={
+            "Jinx": {"hp": ChampionDiffStat(old=630, new=610)},
             "Yasuo": {
-                "hp": ChampionDiffStat(old=630, new=650),
                 "armor": ChampionDiffStat(old=40, new=35),
+                "hp": ChampionDiffStat(old=630, new=650),
                 "mpperlevel": ChampionDiffStat(old=32.1, new=32.4),
-            }
+            },
+            "Azir": {"mpperlevel": ChampionDiffStat(old=40, new=50)},
         },
         new_champions=["Ambessa"],
     )
@@ -44,20 +46,24 @@ def test_build_embeds_line_format_and_rounding():
 
     assert len(embeds) == 1
     embed = embeds[0]
-    assert embed.footer.text == "Patch 14.1.1 → 14.2.1"
-    assert len(embed.fields) == 2
+    assert embed.title == "Patch 14.1.1 → 14.2.1"
+    assert embed.description == "Changes:"
+    assert embed.footer.text is None
+    assert [field.name for field in embed.fields] == [
+        "Azir",
+        "Yasuo",
+        "Jinx",
+        "New champions",
+    ]
 
-    yasuo_field = embed.fields[0]
-    assert yasuo_field.name == "Yasuo"
+    yasuo_field = embed.fields[1]
     assert yasuo_field.value == (
-        "hp: 630 → 650 (▲ +20)\n"
-        "armor: 40 → 35 (▼ -5)\n"
-        "mpperlevel: 32.1 → 32.4 (▲ +0.3)"
+        "```ansi\n"
+        "hp: \x1b[32m630 → 650 (▲ +20)\x1b[0m\n"
+        "mpperlevel: \x1b[32m32.1 → 32.4 (▲ +0.3)\x1b[0m\n"
+        "armor: \x1b[31m40 → 35 (▼ -5)\x1b[0m\n"
+        "```"
     )
-
-    new_champs_field = embed.fields[1]
-    assert new_champs_field.name == "New champions"
-    assert new_champs_field.value == "Ambessa"
 
 
 def test_build_embeds_empty_diff_returns_empty_list():
@@ -87,7 +93,9 @@ def test_build_embeds_splits_60_champions_within_discord_limits():
 
     for embed in embeds:
         assert len(embed.fields) <= 25
-        assert embed.footer.text == "Patch 14.1.1 → 14.2.1"
+        assert embed.title == "Patch 14.1.1 → 14.2.1"
+        assert embed.description == "Changes:"
+        assert embed.footer.text is None
         for field in embed.fields:
             assert len(field.value) <= 1024
 

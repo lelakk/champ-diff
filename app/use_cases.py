@@ -148,6 +148,12 @@ async def dispatch_patch(
             return
 
     diff = await asyncio.to_thread(compare_patches, latest_patch, previous_patch)
+    latest_champions = await asyncio.to_thread(get_champion_data, latest_patch)
+    champion_names = (
+        {cid: entry.name for cid, entry in latest_champions.items() if entry.name}
+        if latest_champions
+        else None
+    )
 
     async def on_success(user_id: int) -> None:
         async with sessionmaker() as callback_session:
@@ -167,7 +173,9 @@ async def dispatch_patch(
         for user_id in pending_users:
             watched, ignored = await get_preferences(session, user_id)
             user_diff = filter_diff(diff, watched, ignored)
-            embeds = build_embeds(user_diff, latest_patch, previous_patch)
+            embeds = build_embeds(
+                user_diff, latest_patch, previous_patch, champion_names=champion_names
+            )
             if not embeds:
                 await mark_user_notified(session, user_id, latest_patch)
                 continue
